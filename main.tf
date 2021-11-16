@@ -26,7 +26,7 @@ resource "scaleway_rdb_instance" "database" {
 resource "scaleway_instance_ip" "server_ip" {
 }
 
-resource "scaleway_instance_server" "node_server" {
+resource "scaleway_instance_server" "node_serverrs" {
   type  = "DEV1-S"
   image = "ubuntu_focal"
   ip_id = scaleway_instance_ip.server_ip.id
@@ -47,11 +47,11 @@ resource "scaleway_instance_server" "node_server" {
       "docker run -d --name app -e DATABASE_URI=\"$(scw-userdata DATABASE_URI)\" -p 80:8080 --restart=always rg.fr-par.scw.cloud/efrei-devops/app:latest",
     ]
     connection {
-      host        = coalesce(self.public_ip, self.private_ip)
+      host        = self.public_ip
       agent       = true
       type        = "ssh"
       user        = "root"
-      private_key = file(pathexpand("~/.ssh/putty.ppk"))
+      private_key = file(pathexpand("~/.ssh/id_rsa"))
     }
   }
 }
