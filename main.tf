@@ -24,12 +24,14 @@ resource "scaleway_rdb_instance" "database" {
 }
 
 resource "scaleway_instance_ip" "server_ip" {
+  count = 2
 }
 
-resource "scaleway_instance_server" "node_serverrs" {
+resource "scaleway_instance_server" "servers" {
+  count = 2
   type  = "DEV1-S"
   image = "ubuntu_focal"
-  ip_id = scaleway_instance_ip.server_ip.id
+  ip_id = scaleway_instance_ip.server_ip[count.index].id
   name  = "test-node-server-devops"
   user_data = {
     DATABASE_URI = "postgres://${scaleway_rdb_instance.database.user_name}:${scaleway_rdb_instance.database.password}@${scaleway_rdb_instance.database.endpoint_ip}:${scaleway_rdb_instance.database.endpoint_port}/rdb"
