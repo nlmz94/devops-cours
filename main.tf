@@ -31,47 +31,22 @@ resource "scaleway_lb_ip" "ip" {
 }
 
 resource "scaleway_instance_security_group" "web" {
-  inbound_default_policy  = "drop"
-  outbound_default_policy = "drop" # By default we drop outgoing traffic that do not match any outbound_rule.
-
-  inbound_rule {
-    action = "accept"
-    port   = 22
-    ip     = "212.47.225.64"
-  }
+  inbound_default_policy = "drop"
 
   inbound_rule {
     action = "accept"
     port   = 80
-    ip     = scaleway_lb_ip.ip.ip_address
-  }
-
-  outbound_rule {
-    action = "accept"
-    port   = 80
-    ip     = scaleway_lb_ip.ip.ip_address
-  }
-
-  inbound_rule {
-    action = "accept"
-    port   = scaleway_rdb_instance.database.endpoint_port
-    ip     = scaleway_rdb_instance.database.endpoint_ip
-  }
-
-  outbound_rule {
-    action = "accept"
-    port   = scaleway_rdb_instance.database.endpoint_port
-    ip     = scaleway_rdb_instance.database.endpoint_ip
+    ip     = scaleway_lb.base_lb.ip_address
   }
 }
 
 resource "scaleway_instance_server" "servers" {
-  count             = 2
-  type              = "DEV1-S"
-  image             = "ubuntu_focal"
-  ip_id             = scaleway_instance_ip.server_ip[count.index].id
-  name              = "test-node-server-devops"
-  security_group_id = scaleway_instance_security_group.web.id
+  count = 2
+  type  = "DEV1-S"
+  image = "ubuntu_focal"
+  ip_id = scaleway_instance_ip.server_ip[count.index].id
+  name  = "test-node-server-devops"
+  //security_group_id = scaleway_instance_security_group.web.id
   user_data = {
     DATABASE_URI = "postgres://${scaleway_rdb_instance.database.user_name}:${scaleway_rdb_instance.database.password}@${scaleway_rdb_instance.database.endpoint_ip}:${scaleway_rdb_instance.database.endpoint_port}/rdb"
   }
@@ -102,6 +77,13 @@ resource "scaleway_lb" "base_lb" {
   type  = "LB-S"
 }
 
+resource "scaleway_lb_certificate" "certificate" {
+  lb_id = scaleway_lb.base_lb.id
+  letsencrypt {
+    common_name = "51.159.27.87.sslip.io"
+  }
+}
+
 resource "scaleway_lb_backend" "backend01" {
   lb_id            = scaleway_lb.base_lb.id
   name             = "backend01"
@@ -111,8 +93,9 @@ resource "scaleway_lb_backend" "backend01" {
 }
 
 resource "scaleway_lb_frontend" "frontend01" {
-  lb_id        = scaleway_lb.base_lb.id
-  backend_id   = scaleway_lb_backend.backend01.id
-  name         = "frontend01"
-  inbound_port = "80"
+  lb_id          = scaleway_lb.base_lb.id
+  backend_id     = scaleway_lb_backend.backend01.id
+  name           = "frontend01"
+  inbound_port   = "443"
+  certificate_id = scaleway_lb_certificate.certificate.id
 }
