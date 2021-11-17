@@ -37,18 +37,17 @@ resource "scaleway_instance_server" "node_serverrs" {
   provisioner "remote-exec" {
     inline = [
       "sudo apt-get remove docker docker-engine docker.io containerd runc",
-      "sudo apt-get install ca-certificates curl gnupg lsb-release",
+      "sudo apt-get install -y ca-certificates curl gnupg lsb-release",
       "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
       "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
       "sudo apt-get update",
-      "sudo apt-get install docker-ce docker-ce-cli containerd.io",
+      "sudo apt-get install -y docker-ce docker-ce-cli containerd.io",
       "sudo gpasswd -a $USER docker",
       "sudo service docker restart",
       "docker run -d --name app -e DATABASE_URI=\"$(scw-userdata DATABASE_URI)\" -p 80:8080 --restart=always rg.fr-par.scw.cloud/efrei-devops/app:latest",
     ]
     connection {
       host        = self.public_ip
-      agent       = true
       type        = "ssh"
       user        = "root"
       private_key = file(pathexpand("~/.ssh/id_rsa"))
