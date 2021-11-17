@@ -8,8 +8,6 @@ terraform {
 }
 
 provider "scaleway" {
-  access_key = "SCW3FCFX7MQM1GA3VFM3"
-  secret_key = "a23e3b80-d579-42ed-822d-73011e7eb5ac"
   project_id = "2c1abec4-43a9-4123-9708-11ef95bbfa9c"
 }
 
