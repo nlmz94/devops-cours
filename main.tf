@@ -8,6 +8,8 @@ terraform {
 }
 
 provider "scaleway" {
+  access_key = "SCW3FCFX7MQM1GA3VFM3"
+  secret_key = "a23e3b80-d579-42ed-822d-73011e7eb5ac"
   project_id = "2c1abec4-43a9-4123-9708-11ef95bbfa9c"
 }
 
@@ -28,12 +30,48 @@ resource "scaleway_instance_ip" "server_ip" {
 resource "scaleway_lb_ip" "ip" {
 }
 
+resource "scaleway_instance_security_group" "web" {
+  inbound_default_policy  = "drop"
+  outbound_default_policy = "drop" # By default we drop outgoing traffic that do not match any outbound_rule.
+
+  inbound_rule {
+    action = "accept"
+    port   = 22
+    ip     = "212.47.225.64"
+  }
+
+  inbound_rule {
+    action = "accept"
+    port   = 80
+    ip     = scaleway_lb_ip.ip.ip_address
+  }
+
+  outbound_rule {
+    action = "accept"
+    port   = 80
+    ip     = scaleway_lb_ip.ip.ip_address
+  }
+
+  inbound_rule {
+    action = "accept"
+    port   = scaleway_rdb_instance.database.endpoint_port
+    ip     = scaleway_rdb_instance.database.endpoint_ip
+  }
+
+  outbound_rule {
+    action = "accept"
+    port   = scaleway_rdb_instance.database.endpoint_port
+    ip     = scaleway_rdb_instance.database.endpoint_ip
+  }
+}
+
 resource "scaleway_instance_server" "servers" {
-  count = 2
-  type  = "DEV1-S"
-  image = "ubuntu_focal"
-  ip_id = scaleway_instance_ip.server_ip[count.index].id
-  name  = "test-node-server-devops"
+  count             = 2
+  type              = "DEV1-S"
+  image             = "ubuntu_focal"
+  ip_id             = scaleway_instance_ip.server_ip[count.index].id
+  name              = "test-node-server-devops"
+  security_group_id = scaleway_instance_security_group.web.id
   user_data = {
     DATABASE_URI = "postgres://${scaleway_rdb_instance.database.user_name}:${scaleway_rdb_instance.database.password}@${scaleway_rdb_instance.database.endpoint_ip}:${scaleway_rdb_instance.database.endpoint_port}/rdb"
   }
