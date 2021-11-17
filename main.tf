@@ -27,6 +27,9 @@ resource "scaleway_instance_ip" "server_ip" {
   count = 2
 }
 
+resource "scaleway_lb_ip" "ip" {
+}
+
 resource "scaleway_instance_server" "servers" {
   count = 2
   type  = "DEV1-S"
@@ -55,4 +58,25 @@ resource "scaleway_instance_server" "servers" {
       private_key = file(pathexpand("~/.ssh/id_rsa"))
     }
   }
+}
+
+resource "scaleway_lb" "base_lb" {
+  ip_id = scaleway_lb_ip.ip.id
+  zone  = "fr-par-1"
+  type  = "LB-S"
+}
+
+resource "scaleway_lb_backend" "backend01" {
+  lb_id            = scaleway_lb.base_lb.id
+  name             = "backend01"
+  forward_protocol = "http"
+  forward_port     = "80"
+  server_ips       = [for o in scaleway_instance_server.servers : o.private_ip]
+}
+
+resource "scaleway_lb_frontend" "frontend01" {
+  lb_id        = scaleway_lb.base_lb.id
+  backend_id   = scaleway_lb_backend.backend01.id
+  name         = "frontend01"
+  inbound_port = "80"
 }
